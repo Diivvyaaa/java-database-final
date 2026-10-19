@@ -1,39 +1,82 @@
 package com.project.code.Model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+@Entity
+public class Customer {
 
-import jakarta.persistence.Entity; import jakarta.persistence.FetchType; import jakarta.persistence.GeneratedValue; import jakarta.persistence.GenerationType; import jakarta.persistence.Id; import jakarta.persistence.OneToMany; import jakarta.validation.Valid; import jakarta.validation.constraints.NotNull;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
-@Entity public class Customer { @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
+    @NotNull(message = "Name cannot be null")
+    private String name;
 
-@Valid @NotNull(message = "Name cannot be null") private String name; @NotNull(message = "Email cannot be null") private String email; @NotNull(message = "Phone No cannot be null") private String phone;
+    @NotNull(message = "Email cannot be null")
+    private String email;
 
-@OneToMany(mappedBy = "customer",fetch = FetchType.EAGER) @JsonManagedReference private List orders;
+    @NotNull(message = "Phone cannot be null")
+    private String phone;
 
-// Getters and Setters
+    @OneToMany(mappedBy = "customer", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<OrderDetails> orders;
 
-public Long getId() { return id; }
+    public Customer() {
+    }
 
-public void setId(Long id) { this.id = id; }
+    public Customer(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
 
-public String getName() { return name; }
+    public long getId() {
+        return id;
+    }
 
-public void setName(String name) { this.name = name; }
+    public void setId(long id) {
+        this.id = id;
+    }
 
-public String getEmail() { return email; }
+    public String getName() {
+        return name;
+    }
 
-public void setEmail(String email) { this.email = email; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-public String getPhone() { return phone; }
+    public String getEmail() {
+        return email;
+    }
 
-public void setPhone(String phone) { this.phone = phone; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-public List getOrders() { return orders; }
+    public String getPhone() {
+        return phone;
+    }
 
-public void setOrders(List orders) { this.orders = orders; }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-// Constructors (if necessary) public Customer() {}
+    public List<OrderDetails> getOrders() {
+        return orders;
+    }
 
-public Customer(String name, String email, String phone) { this.name = name; this.email = email; this.phone = phone; } }
+    public void setOrders(List<OrderDetails> orders) {
+        this.orders = orders;
+    }
+}
