@@ -1,21 +1,56 @@
 package com.project.code.Service;
 
+import com.project.code.Model.Inventory;
+import com.project.code.Model.Product;
+import com.project.code.Repo.InventoryRepository;
+import com.project.code.Repo.ProductRepository;
+
 import org.springframework.stereotype.Service;
 
-import com.project.code.Model.Inventory; import com.project.code.Model.Product; import com.project.code.Repo.InventoryRepository; import com.project.code.Repo.ProductRepository;
+@Service
+public class ServiceClass {
 
-@Service public class ServiceClass {
+    private final ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
 
-private final InventoryRepository inventoryRepository; private final ProductRepository productRepository;
+    public ServiceClass(
+            ProductRepository productRepository,
+            InventoryRepository inventoryRepository) {
 
-public ServiceClass(InventoryRepository inventoryRepository,ProductRepository productRepository) { this.inventoryRepository = inventoryRepository; this.productRepository=productRepository; }
+        this.productRepository = productRepository;
+        this.inventoryRepository = inventoryRepository;
+    }
 
-public boolean validateInventory(Inventory inventory) { Inventory result=inventoryRepository.findByProductIdandStoreId(inventory.getProduct().getId(),inventory.getStore().getId()); if(result!=null) { return false; } return true; }
+    public boolean validateInventory(Inventory inventory) {
 
-public boolean validateProduct(Product product) { Product result=productRepository.findByName(product.getName()); if(result!=null) { return false; } return true; }
+        Inventory existingInventory = inventoryRepository
+                .findByProductIdandStoreId(
+                        inventory.getProduct().getId(),
+                        inventory.getStore().getId()
+                );
 
-public boolean ValidateProductId(long id) { Product result=productRepository.findByid(id); System.out.println(result); if(result==null) { return false; } return true; }
+        return existingInventory == null;
+    }
 
-public Inventory getInventoryId(Inventory inventory) { Inventory result=inventoryRepository.findByProductIdandStoreId(inventory.getProduct().getId(),inventory.getStore().getId());
+    public boolean validateProduct(Product product) {
 
-return result; } }
+        Product existingProduct = productRepository
+                .findByName(product.getName());
+
+        return existingProduct == null;
+    }
+
+    public boolean ValidateProductId(long id) {
+        Product product = productRepository.findByid(id);
+
+        return product != null;
+    }
+
+    public Inventory getInventoryId(Inventory inventory) {
+
+        return inventoryRepository.findByProductIdandStoreId(
+                inventory.getProduct().getId(),
+                inventory.getStore().getId()
+        );
+    }
+}
