@@ -1,47 +1,197 @@
 package com.project.code.Controller;
 
-import java.util.HashMap; import java.util.List; import java.util.Map;
+import com.project.code.Model.CombinedRequest;
+import com.project.code.Model.Inventory;
+import com.project.code.Repo.InventoryRepository;
+import com.project.code.Repo.ProductRepository;
+import com.project.code.Service.ServiceClass;
 
-import org.springframework.beans.factory.annotation.Autowired; import org.springframework.dao.DataIntegrityViolationException; import org.springframework.web.bind.annotation.DeleteMapping; import org.springframework.web.bind.annotation.GetMapping; import org.springframework.web.bind.annotation.PathVariable; import org.springframework.web.bind.annotation.PostMapping; import org.springframework.web.bind.annotation.PutMapping; import org.springframework.web.bind.annotation.RequestBody; import org.springframework.web.bind.annotation.RequestMapping; import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.project.code.Model.CombinedRequest; import com.project.code.Model.Inventory; import com.project.code.Model.Product; import com.project.code.Repo.InventoryRepository; import com.project.code.Repo.ProductRepository; import com.project.code.Service.ServiceClass;
+import java.util.HashMap;
+import java.util.Map;
 
-@RestController @RequestMapping("/inventory") public class InventoryController {
+@RestController
+@RequestMapping("/inventory")
+public class InventoryController {
 
-@Autowired private ProductRepository productRepository; @Autowired private InventoryRepository inventoryRepository;
+    @Autowired
+    private ProductRepository productRepository;
 
-@Autowired private ServiceClass serviceClass;
+    @Autowired
+    private InventoryRepository inventoryRepository;
 
-@PutMapping public Map<String, String> updateInventory(@RequestBody CombinedRequest request) { Product product = request.getProduct(); Inventory inventory = request.getInventory();
+    @Autowired
+    private ServiceClass serviceClass;
 
-Map<String, String> map = new HashMap<>(); System.out.println("Stock Level: " + inventory.getStockLevel()); if (!serviceClass.ValidateProductId(product.getId())) { map.put("message", "Id " + product.getId() + " not present in database"); return map; } productRepository.save(product); map.put("message", "Successfully updated product with id: " + product.getId());
+    @PutMapping
+    public Map<String, String> updateInventory(
+            @RequestBody CombinedRequest combinedRequest) {
 
-if (inventory != null) { try { Inventory result = serviceClass.getInventoryId(inventory); if (result != null) { inventory.setId(result.getId()); inventoryRepository.save(inventory); } else { map.put("message", "No data available for this product or store id"); return map; }
+        Map<String, String> response = new HashMap<>();
 
-} catch (DataIntegrityViolationException e) { map.put("message", "Error: " + e); System.out.println(e); return map; } catch (Exception e) { map.put("message", "Error: " + e); System.out.println(e); return map; } }
+        try {
+            long productId = combinedRequest.getProduct().getId();
 
-return map;
+            if (!serviceClass.ValidateProductId(productId)) {
+                response.put("message", "Product not present in database");
+                return response;
+            }
 
-}
+            Inventory inventory = combinedRequest.getInventory();
 
-@PostMapping public Map<String, String> saveInventory(@RequestBody Inventory inventory) {
+            if (serviceClass.validateInventory(inventory)) {
+                productRepository.save(combinedRequest.getProduct());
+                inventoryRepository.save(inventory);
 
-Map<String, String> map = new HashMap<>(); try { if (serviceClass.validateInventory(inventory)) { inventoryRepository.save(inventory); } else { map.put("message", "Data Already present in inventory"); return map; }
+                response.put("message", "Successfully updated product");
+            } else {
+                response.put("message", "No data available");
+            }
 
-} catch (DataIntegrityViolationException e) { map.put("message", "Error: " + e); System.out.println(e); return map; } catch (Exception e) { map.put("message", "Error: " + e); System.out.println(e); return map; } map.put("message", "Product added to inventory successfully"); return map; }
+        } catch (DataIntegrityViolationException exception) {
+            response.put("message", "Unable to update product data");
 
-@GetMapping("/{storeid}") public Map<String, Object> getAllProducts(@PathVariable Long storeid) { Map<String, Object> map = new HashMap<>(); List result = productRepository.findProductsByStoreId(storeid); map.put("products", result); return map; }
+        } catch (Exception exception) {
+            response.put("message", exception.getMessage());
+        }
 
-@GetMapping("filter/{category}/{name}/{storeid}") public Map<String, Object> getProductName(@PathVariable String category, @PathVariable String name, @PathVariable long storeid) { Map<String, Object> map = new HashMap<>(); if (category.equals("null") ) { map.put("product", productRepository.findByNameLike(storeid, name)); return map; } else if(name.equals("null")) { System.out.println("name is null"); map.put("product", productRepository.findByCategoryAndStoreId(storeid,category)); return map; } map.put("product", productRepository.findByNameAndCategory(storeid, name, category)); return map; }
+        return response;
+    }
 
-@GetMapping("search/{name}/{storeId}") public Map<String,Object> searchProduct(@PathVariable String name, @PathVariable long storeId) { Map<String, Object> map = new HashMap<>(); map.put("product", productRepository.findByNameLike(storeId, name)); return map; }
+    @PostMapping
+    public Map<String, String> saveInventory(@RequestBody Inventory inventory) {
 
-@DeleteMapping("/{id}") public Map<String, String> removeProduct(@PathVariable Long id) { Map<String, String> map = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
 
-if (!serviceClass.ValidateProductId(id)) { map.put("message", "Id " + id + " not present in database"); return map; } inventoryRepository.deleteByProductId(id); map.put("message", "Deleted product successfully with id: " + id); return map; }
+        try {
+            if (serviceClass.validateInventory(inventory)) {
+                response.put("message", "Data is already present");
+                return response;
+            }
 
-@GetMapping("validate/{quantity}/{storeId}/{productId}") public boolean validateQuantity(@PathVariable int quantity, @PathVariable long storeId, @PathVariable long productId) { Inventory result = inventoryRepository.findByProductIdandStoreId(productId, storeId); if (result.getStockLevel() >= quantity) { return true; } return false;
+            inventoryRepository.save(inventory);
+            response.put("message", "Data saved successfully");
 
-}
+        } catch (DataIntegrityViolationException exception) {
+            response.put("message", "Unable to save inventory data");
 
+        } catch (Exception exception) {
+            response.put("message", exception.getMessage());
+        }
+
+        return response;
+    }
+
+    @GetMapping("/{storeid}")
+    public Map<String, Object> getAllProducts(
+            @PathVariable long storeid) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put(
+                "products",
+                productRepository.findProductsByStoreId(storeid)
+        );
+
+        return response;
+    }
+
+    @GetMapping("/filter/{category}/{name}/{storeid}")
+    public Map<String, Object> getProductName(
+            @PathVariable String category,
+            @PathVariable String name,
+            @PathVariable long storeid) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (category.equalsIgnoreCase("null")
+                && name.equalsIgnoreCase("null")) {
+
+            response.put(
+                    "product",
+                    productRepository.findProductsByStoreId(storeid)
+            );
+
+        } else if (category.equalsIgnoreCase("null")) {
+
+            response.put(
+                    "product",
+                    productRepository.findByNameLike(storeid, name)
+            );
+
+        } else if (name.equalsIgnoreCase("null")) {
+
+            response.put(
+                    "product",
+                    productRepository.findByCategoryAndStoreId(category, storeid)
+            );
+
+        } else {
+
+            response.put(
+                    "product",
+                    productRepository.findByNameAndCategory(
+                            storeid,
+                            name,
+                            category
+                    )
+            );
+        }
+
+        return response;
+    }
+
+    @GetMapping("/search/{name}/{storeId}")
+    public Map<String, Object> searchProduct(
+            @PathVariable String name,
+            @PathVariable long storeId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put(
+                "product",
+                productRepository.findByNameLike(storeId, name)
+        );
+
+        return response;
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, String> removeProduct(@PathVariable long id) {
+
+        Map<String, String> response = new HashMap<>();
+
+        if (!serviceClass.ValidateProductId(id)) {
+            response.put("message", "Product not present in database");
+            return response;
+        }
+
+        inventoryRepository.deleteByProductId(id);
+        response.put("message", "Product deleted successfully");
+
+        return response;
+    }
+
+    @GetMapping("/validate/{quantity}/{storeId}/{productId}")
+    public boolean validateQuantity(
+            @PathVariable int quantity,
+            @PathVariable long storeId,
+            @PathVariable long productId) {
+
+        Inventory inventory = inventoryRepository
+                .findByProductIdandStoreId(productId, storeId);
+
+        return inventory != null
+                && inventory.getStockLevel() >= quantity;
+    }
 }
